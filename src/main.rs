@@ -1,5 +1,6 @@
+mod db;
 mod models;
 
 fn main() {
-    println!("Welcome To Jira CLI!");
+    println!("Welcome To JIRA Cli!");
 }
