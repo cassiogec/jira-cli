@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fs};
+use std::fs;
 
-use anyhow::{Context, Ok, Result};
+use anyhow::{anyhow, Result};
 
 use crate::models::{DBState, Epic, Status, Story};
 
 pub struct JiraDatabase {
-    database: Box<dyn Database>,
+    pub database: Box<dyn Database>,
 }
 
 impl JiraDatabase {
@@ -16,100 +16,108 @@ impl JiraDatabase {
     }
 
     pub fn read_db(&self) -> Result<DBState> {
-        let db_state = self.database.read_db()?;
-        Ok(db_state)
+        self.database.read_db()
     }
 
     pub fn create_epic(&self, epic: Epic) -> Result<u32> {
-        let mut db_state = self.database.read_db()?;
-        let id = db_state.last_item_id + 1;
-        db_state.epics.insert(id, epic);
-        db_state.last_item_id = id;
-        self.database.write_db(&db_state)?;
-        Ok(id)
+        let mut parsed = self.database.read_db()?;
+
+        let last_id = parsed.last_item_id;
+        let new_id = last_id + 1;
+
+        parsed.last_item_id = new_id;
+        parsed.epics.insert(new_id, epic);
+
+        self.database.write_db(&parsed)?;
+        Ok(new_id)
     }
 
     pub fn create_story(&self, story: Story, epic_id: u32) -> Result<u32> {
-        let mut db_state = self.database.read_db()?;
-        let id = db_state.last_item_id + 1;
-        db_state.stories.insert(id, story);
-        db_state.last_item_id = id;
-        let epic = db_state
+        let mut parsed = self.database.read_db()?;
+
+        let last_id = parsed.last_item_id;
+        let new_id = last_id + 1;
+
+        parsed.last_item_id = new_id;
+        parsed.stories.insert(new_id, story);
+        parsed
             .epics
             .get_mut(&epic_id)
-            .with_context(|| format!("Epic with id {epic_id} doesnt exist"))?;
-        epic.stories.push(id);
-        self.database.write_db(&db_state)?;
-        Ok(id)
+            .ok_or_else(|| anyhow!("could not find epic in database!"))?
+            .stories
+            .push(new_id);
+
+        self.database.write_db(&parsed)?;
+        Ok(new_id)
     }
 
     pub fn delete_epic(&self, epic_id: u32) -> Result<()> {
-        let mut db_state = self.database.read_db()?;
-        let epic = db_state
-            .epics
-            .get_mut(&epic_id)
-            .with_context(|| format!("Couldn't find the epic"))?;
+        let mut parsed = self.database.read_db()?;
 
-        for story_id in epic.stories.iter() {
-            db_state
-                .stories
-                .remove(&story_id)
-                .with_context(|| format!("Couldn't find the Story ID: {story_id} to deleted!"))?;
-        }
-        db_state
+        for story_id in &parsed
             .epics
-            .remove(&epic_id)
-            .with_context(|| format!("Couldn't find the epic"))?;
-        self.database.write_db(&db_state)?;
+            .get(&epic_id)
+            .ok_or_else(|| anyhow!("could not find epic in database!"))?
+            .stories
+        {
+            parsed.stories.remove(story_id);
+        }
+
+        parsed.epics.remove(&epic_id);
+
+        self.database.write_db(&parsed)?;
         Ok(())
     }
 
     pub fn delete_story(&self, epic_id: u32, story_id: u32) -> Result<()> {
-        let mut db_state = self.database.read_db()?;
-        let epic = db_state
+        let mut parsed = self.database.read_db()?;
+
+        let epic = parsed
             .epics
             .get_mut(&epic_id)
-            .with_context(|| format!("Couldn't find the Epic"))?;
+            .ok_or_else(|| anyhow!("could not find epic in database!"))?;
+
         let story_index = epic
             .stories
             .iter()
-            .position(|id| *id == story_id)
-            .with_context(|| {
-                format!("Was not able to find the story id: {story_id} for the epic: {epic_id}")
-            })?;
+            .position(|id| id == &story_id)
+            .ok_or_else(|| anyhow!("story id not found in epic stories vector"))?;
         epic.stories.remove(story_index);
-        db_state
-            .stories
-            .remove(&story_id)
-            .with_context(|| format!("Couldn't remove the story because it doesn't exists"))?;
-        self.database.write_db(&db_state)?;
+
+        parsed.stories.remove(&story_id);
+
+        self.database.write_db(&parsed)?;
         Ok(())
     }
 
     pub fn update_epic_status(&self, epic_id: u32, status: Status) -> Result<()> {
-        let mut db_state = self.database.read_db()?;
-        let epic = db_state
+        let mut parsed = self.database.read_db()?;
+
+        parsed
             .epics
             .get_mut(&epic_id)
-            .with_context(|| format!("Couldn't find the epic to update its status"))?;
-        epic.status = status;
-        self.database.write_db(&db_state)?;
+            .ok_or_else(|| anyhow!("could not find epic in database!"))?
+            .status = status;
+
+        self.database.write_db(&parsed)?;
         Ok(())
     }
 
     pub fn update_story_status(&self, story_id: u32, status: Status) -> Result<()> {
-        let mut db_state = self.database.read_db()?;
-        let story = db_state
+        let mut parsed = self.database.read_db()?;
+
+        parsed
             .stories
             .get_mut(&story_id)
-            .with_context(|| format!("Couldn't find the story to update its status"))?;
-        story.status = status;
-        self.database.write_db(&db_state)?;
+            .ok_or_else(|| anyhow!("could not find story in database!"))?
+            .status = status;
+
+        self.database.write_db(&parsed)?;
         Ok(())
     }
 }
 
-trait Database {
+pub trait Database {
     fn read_db(&self) -> Result<DBState>;
     fn write_db(&self, db_state: &DBState) -> Result<()>;
 }
