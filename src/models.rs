@@ -25,13 +25,20 @@ pub enum Status {
 
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let msg = match self {
-            Self::Open => "OPEN",
-            Self::InProgress => "IN PROGRESS",
-            Self::Resolved => "RESOLVED",
-            Self::Closed => "CLOSED",
-        };
-        f.write_str(msg)
+        match self {
+            Self::Open => {
+                write!(f, "OPEN")
+            }
+            Self::InProgress => {
+                write!(f, "IN PROGRESS")
+            }
+            Self::Resolved => {
+                write!(f, "RESOLVED")
+            }
+            Self::Closed => {
+                write!(f, "CLOSED")
+            }
+        }
     }
 }
 

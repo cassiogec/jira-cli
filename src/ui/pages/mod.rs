@@ -23,14 +23,14 @@ impl Page for HomePage {
         println!("----------------------------- EPICS -----------------------------");
         println!("     id     |               name               |      status      ");
 
-        let db_state = self.db.database.read_db()?;
-        for epic_hash in db_state.epics.iter().sorted_by(|a, b| Ord::cmp(&a.0, &b.0)) {
-            println!(
-                "{}|{}|{}",
-                get_column_string(&epic_hash.0.to_string(), 11),
-                get_column_string(&epic_hash.1.name, 32),
-                get_column_string(&epic_hash.1.status.to_string(), 17)
-            )
+        let epics = self.db.read_db()?.epics;
+
+        for id in epics.keys().sorted() {
+            let epic = &epics[id];
+            let id_col = get_column_string(&id.to_string(), 11);
+            let name_col = get_column_string(&epic.name, 32);
+            let status_col = get_column_string(&epic.status.to_string(), 17);
+            println!("{} | {} | {}", id_col, name_col, status_col);
         }
 
         println!();
@@ -42,11 +42,12 @@ impl Page for HomePage {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
+        let epics = self.db.read_db()?.epics;
+
         match input {
             "q" => Ok(Some(Action::Exit)),
             "c" => Ok(Some(Action::CreateEpic)),
             input => {
-                let epics = self.db.read_db()?.epics;
                 if let Ok(epic_id) = input.parse::<u32>() {
                     if epics.contains_key(&epic_id) {
                         return Ok(Some(Action::NavigateToEpicDetail { epic_id }));
@@ -74,12 +75,11 @@ impl Page for EpicDetail {
         println!("------------------------------ EPIC ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
 
-        println!(
-            "{}|{}|{}",
-            get_column_string(&self.epic_id.to_string(), 11),
-            get_column_string(&epic.name, 32),
-            get_column_string(&epic.status.to_string(), 17)
-        );
+        let id_col = get_column_string(&self.epic_id.to_string(), 5);
+        let name_col = get_column_string(&epic.name, 12);
+        let desc_col = get_column_string(&epic.description, 27);
+        let status_col = get_column_string(&epic.status.to_string(), 13);
+        println!("{} | {} | {} | {}", id_col, name_col, desc_col, status_col);
 
         println!();
 
@@ -105,6 +105,9 @@ impl Page for EpicDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
+        let db_state = self.db.read_db()?;
+        let stories = db_state.stories;
+
         match input {
             "p" => Ok(Some(Action::NavigateToPreviousPage)),
             "u" => Ok(Some(Action::UpdateEpicStatus {
@@ -117,7 +120,6 @@ impl Page for EpicDetail {
                 epic_id: self.epic_id,
             })),
             input => {
-                let stories = self.db.read_db()?.stories;
                 if let Ok(story_id) = input.parse::<u32>() {
                     if stories.contains_key(&story_id) {
                         return Ok(Some(Action::NavigateToStoryDetail {
@@ -148,13 +150,11 @@ impl Page for StoryDetail {
 
         println!("------------------------------ STORY ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
-
-        println!(
-            "{}|{}|{}",
-            get_column_string(&self.story_id.to_string(), 11),
-            get_column_string(&story.name, 32),
-            get_column_string(&story.status.to_string(), 17)
-        );
+        let id_col = get_column_string(&self.story_id.to_string(), 5);
+        let name_col = get_column_string(&story.name, 12);
+        let desc_col = get_column_string(&story.description, 27);
+        let status_col = get_column_string(&story.status.to_string(), 13);
+        println!("{} | {} | {} | {}", id_col, name_col, desc_col, status_col);
 
         println!();
         println!();
