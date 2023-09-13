@@ -30,7 +30,10 @@ fn create_epic_prompt() -> Epic {
     println!("Epic Description: ");
     let epic_description = get_user_input();
 
-    Epic::new(epic_name, epic_description)
+    Epic::new(
+        epic_name.trim().to_owned(),
+        epic_description.trim().to_owned(),
+    )
 }
 
 fn create_story_prompt() -> Story {
@@ -40,7 +43,10 @@ fn create_story_prompt() -> Story {
     println!("Story Description: ");
     let story_description = get_user_input();
 
-    Story::new(story_name, story_description)
+    Story::new(
+        story_name.trim().to_owned(),
+        story_description.trim().to_owned(),
+    )
 }
 
 fn delete_epic_prompt() -> bool {
@@ -48,7 +54,7 @@ fn delete_epic_prompt() -> bool {
         println!("----------------------------");
         println!("Are you sure you want to delete this epic? All stories in this epic will also be deleted [Y/n]:");
         let input = get_user_input();
-        match input.to_uppercase().as_str() {
+        match input.trim().to_uppercase().as_str() {
             "Y" => return true,
             "N" => return false,
             input => {
@@ -67,7 +73,7 @@ fn delete_story_prompt() -> bool {
         println!("----------------------------");
         println!("Are you sure you want to delete this story? [Y/n]:");
         let input = get_user_input();
-        match input.to_uppercase().as_str() {
+        match input.trim().to_uppercase().as_str() {
             "Y" => return true,
             "N" => return false,
             input => {
@@ -85,7 +91,7 @@ fn update_status_prompt() -> Option<Status> {
     println!("----------------------------");
     println!("New Status (1 - OPEN, 2 - IN-PROGRESS, 3 - RESOLVED, 4 - CLOSED):");
     let input_status = get_user_input();
-    match input_status.as_str() {
+    match input_status.trim() {
         "1" => Some(Status::Open),
         "2" => Some(Status::InProgress),
         "3" => Some(Status::Resolved),
