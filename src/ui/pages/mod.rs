@@ -46,7 +46,7 @@ impl Page for HomePage {
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
         let epics = self.db.read_db()?.epics;
 
-        match input {
+        match input.trim().to_lowercase().as_str() {
             "q" => Ok(Some(Action::Exit)),
             "c" => Ok(Some(Action::CreateEpic)),
             input => {
@@ -114,7 +114,7 @@ impl Page for EpicDetail {
         let db_state = self.db.read_db()?;
         let stories = db_state.stories;
 
-        match input {
+        match input.trim().to_lowercase().as_str() {
             "p" => Ok(Some(Action::NavigateToPreviousPage)),
             "u" => Ok(Some(Action::UpdateEpicStatus {
                 epic_id: self.epic_id,
@@ -175,7 +175,7 @@ impl Page for StoryDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        match input {
+        match input.trim().to_lowercase().as_str() {
             "p" => Ok(Some(Action::NavigateToPreviousPage)),
             "u" => Ok(Some(Action::UpdateStoryStatus {
                 story_id: self.story_id,
